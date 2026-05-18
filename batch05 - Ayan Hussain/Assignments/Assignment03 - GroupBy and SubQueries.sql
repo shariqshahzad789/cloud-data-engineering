@@ -15,13 +15,19 @@
 -- Show customer_id and order_count.
 -- Sort by order_count descending.
 
-
+select o.customer_id, count(o.order_id) as order_count
+  from sales.orders o
+ group by o.customer_id
+ order by count(o.order_id) desc;
 
 -- Q2.
 -- For each store, find the total number of orders placed.
 -- Show store_id and total_orders.
 
-
+select o.store_id, count(o.order_id) as total_orders
+  from sales.orders o
+ group by o.store_id
+ order by count(o.order_id) desc;
 
 -- Q3.
 -- Calculate the net revenue per order.
@@ -29,21 +35,31 @@
 -- Show order_id and net_revenue, sorted by net_revenue descending.
 -- (Hint: use sales.order_items)
 
-
+select o.order_id, sum( oi.quantity * oi.list_price * (1 - discount) ) as net_revenue
+  from sales.orders o
+  join sales.order_items oi on o.order_id = oi.order_id
+ group by o.order_id
+ order by sum( oi.quantity * oi.list_price * (1 - discount) ) desc;
 
 -- Q4.
 -- Find the average list price of products in each category.
 -- Show category_id and avg_price (rounded to 2 decimal places).
 -- (Hint: use ROUND())
 
-
+select c.category_id, round(avg(p.list_price),2) as avg_price
+  from production.products p
+  join production.categories c on p.category_id = c.category_id
+ group by c.category_id;
 
 -- Q5.
 -- Find the total number of orders placed in each year.
 -- Show order_year and total_orders, sorted by order_year.
 -- (Hint: use YEAR(order_date))
 
-
+select year(order_date) as order_year, count(order_id) as order_count
+  from sales.orders
+ group by year(order_date)
+ order by year(order_date)
 
 -- ============================================================
 --  SECTION B — HAVING CLAUSE
@@ -53,19 +69,31 @@
 -- Find customers who have placed MORE than 5 orders in total.
 -- Show customer_id and order_count.
 
-
+select o.customer_id, count(o.order_id) as order_count
+  from sales.orders o
+ group by o.customer_id
+ having count(o.order_id) > 5
+ order by count(o.order_id) desc;
 
 -- Q7.
 -- Find categories where the AVERAGE list price is greater than $1,500.
 -- Show category_id and avg_price.
 
-
+select c.category_id, round(avg(p.list_price),2) as avg_price
+  from production.products p
+  join production.categories c on p.category_id = c.category_id
+ group by c.category_id
+ having round(avg(p.list_price),2) > 1500;
 
 -- Q8.
 -- Find customers who placed at least 2 orders in the year 2017.
 -- Show customer_id, order_year, and order_count.
 
-
+select customer_id, year(order_date) as order_year, count(order_id) as order_count
+  from sales.orders
+ where year(order_date) = '2017'
+ group by customer_id, year(order_date)
+ having count(order_id) > 2;
 
 -- ============================================================
 --  SECTION C — SUBQUERIES
@@ -76,28 +104,47 @@
 -- Use a subquery to get the customer_ids first.
 -- Show all columns from sales.orders.
 
-
+select *
+  from sales.orders o
+ where o.customer_id in (select c.customer_id
+                           from sales.customers c
+                         where c.city = 'houston'
+                        );
 
 -- Q10.
 -- Find all products whose list_price is greater than the
 -- AVERAGE list_price of ALL products.
 -- Show product_name and list_price.
 
-
+select *
+  from sales.orders o
+ where o.customer_id in (select c.customer_id
+                           from sales.customers c
+                         where c.city = 'houston'
+                        );
 
 -- Q11.
 -- Find all products that belong to the category 'Mountain Bikes'
 -- or 'Road Bikes'. Use a subquery on production.categories.
 -- Show product_name and list_price.
 
-
+select p.product_name, p.list_price
+  from production.products p
+ where p.category_id in (select c.category_id
+                           from production.categories c
+                          where c.category_name in ('mountain bikes','road bikes'));
 
 -- Q12.
 -- Find all customers who have NEVER placed an order.
 -- Show customer_id, first_name, and last_name.
 -- (Hint: use NOT IN with a subquery on sales.orders)
 
-
+select *
+  from sales.orders o
+ where o.customer_id in (select c.customer_id
+                           from sales.customers c
+                         where c.city = 'houston'
+                        );
 
 -- ============================================================
 --  SECTION D — JOINs WITH GROUP BY
@@ -108,7 +155,10 @@
 -- Join sales.orders with sales.customers.
 -- Show city and total_orders, sorted by total_orders descending.
 
-
+select c.city, count(o.order_id) total_orders
+  from sales.orders o join sales.customers c on o.customer_id = c.customer_id
+ group by c.city
+ order by count(o.order_id) desc;
 
 -- Q14.
 -- For each staff member, count how many orders they handled.
@@ -116,7 +166,10 @@
 -- Show staff full name (first_name + ' ' + last_name) as staff_name
 -- and order_count, sorted by order_count descending.
 
-
+select s.first_name+' '+s.last_name as staff_name, count(o.order_id) total_orders
+  from sales.orders o join sales.staffs s on o.staff_id = s.staff_id
+ group by s.first_name+' '+s.last_name
+ order by count(o.order_id) desc;
 
 -- Q15. (BONUS — Multi-concept)
 -- Find customers who have spent more than $10,000 in total.
@@ -125,7 +178,13 @@
 -- Sort by total_spent descending.
 -- (Hint: JOIN + GROUP BY + HAVING)
 
-
+select c.first_name+' '+c.last_name as customer_name, sum(oi.quantity * oi.list_price * (1 - discount)) total_spent
+  from sales.orders o
+  join sales.customers c on o.customer_id = c.customer_id
+  join sales.order_items oi on o.order_id = oi.order_id
+ group by c.first_name+' '+c.last_name
+ having sum(oi.quantity * oi.list_price) > 10000
+ order by sum(oi.quantity * oi.list_price) desc;
 
 -- ============================================================
 --  END OF ASSIGNMENT 03
